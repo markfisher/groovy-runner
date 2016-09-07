@@ -75,8 +75,11 @@ public class LauncherThread extends Thread {
 			try {
 				this.compiler = new GroovyCompiler(new LauncherConfiguration());
 				Object[] compiledSources = compile();
+				Object[] sources = new Object[compiledSources.length + 1];
+				System.arraycopy(compiledSources, 0, sources, 0, compiledSources.length);
+				sources[sources.length - 1] = MessageExchange.class;
 				// Run in new thread to ensure that the context classloader is setup
-				this.runThread = new RunThread(compiledSources);
+				this.runThread = new RunThread(sources);
 				this.runThread.start();
 				this.runThread.join();
 			}
@@ -89,9 +92,14 @@ public class LauncherThread extends Thread {
 	public void close() {
 		synchronized (this.monitor) {
 			if (this.runThread != null) {
-				this.runThread.shutdown();
+				if (this.runThread.applicationContext == null) {
+					result = Collections.singletonMap("status", "ERROR");
+				}
+				else {
+					result = this.runThread.getResult();
+					this.runThread.shutdown();
+				}
 				this.runThread = null;
-				result = Collections.singletonMap("status", "DONE");
 			}
 		}
 	}
@@ -99,7 +107,7 @@ public class LauncherThread extends Thread {
 	private String[] getArgs() {
 		String[] args = new String[this.args.length + 2];
 		System.arraycopy(this.args, 0, args, 0, this.args.length);
-		args[this.args.length ] = "--spring.config.name=scriptlet";
+		args[this.args.length] = "--spring.config.name=scriptlet";
 		args[this.args.length + 1] = "--spring.jmx.default-domain=scriptlet." + count;
 		return args;
 	}
@@ -134,6 +142,23 @@ public class LauncherThread extends Thread {
 			setDaemon(true);
 		}
 
+		public Map<String, Object> getResult() {
+			if (this.applicationContext==null) {
+				return Collections.singletonMap("status", "EMPTY");
+			}
+			synchronized (this.monitor) {
+				try {
+					Method method = this.applicationContext.getClass()
+							.getMethod("getBean", Class.class);
+					MessageExchange holder = (MessageExchange) method.invoke(this.applicationContext, MessageExchange.class);
+					return holder.getResult();
+				}
+				catch (Exception ex) {
+					return Collections.singletonMap("status", "FAILED");
+				}
+			}
+		}
+
 		@Override
 		public void run() {
 			synchronized (this.monitor) {
@@ -143,7 +168,6 @@ public class LauncherThread extends Thread {
 									getArgs());
 				}
 				catch (Exception ex) {
-					ex.printStackTrace();
 				}
 			}
 		}
