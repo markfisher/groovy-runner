@@ -1,5 +1,3 @@
-import com.example.Handler
-
 @Configuration
 class Main {
 

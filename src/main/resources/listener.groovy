@@ -3,7 +3,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 
 import com.example.MessageExchange
-import com.example.Handler
 
 @Component
 class Listener {
