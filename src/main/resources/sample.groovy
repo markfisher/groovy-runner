@@ -1,4 +1,3 @@
-@Configuration
 class Main {
 
 	@Bean
