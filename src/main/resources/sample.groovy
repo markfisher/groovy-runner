@@ -1,8 +1,8 @@
 class Main {
 	@Bean
-	CommandLineRunner runner(com.example.MessageExchange result) {
+	CommandLineRunner runner() {
 		{ args ->
-			result.setResponse(["foo" : "bar"])
+			com.example.MessageExchange.setResponse(["foo" : "bar"])
 		}
 	}
 }

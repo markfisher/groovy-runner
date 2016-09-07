@@ -74,10 +74,7 @@ public class LauncherThread extends Thread {
 		synchronized (this.monitor) {
 			try {
 				this.compiler = new GroovyCompiler(new LauncherConfiguration());
-				Object[] compiledSources = compile();
-				Object[] sources = new Object[compiledSources.length + 1];
-				System.arraycopy(compiledSources, 0, sources, 0, compiledSources.length);
-				sources[sources.length - 1] = MessageExchange.class;
+				Object[] sources = compile();
 				// Run in new thread to ensure that the context classloader is setup
 				this.runThread = new RunThread(sources);
 				this.runThread.start();
@@ -148,10 +145,7 @@ public class LauncherThread extends Thread {
 			}
 			synchronized (this.monitor) {
 				try {
-					Method method = this.applicationContext.getClass()
-							.getMethod("getBean", Class.class);
-					MessageExchange holder = (MessageExchange) method.invoke(this.applicationContext, MessageExchange.class);
-					return holder.getResult();
+					return MessageExchange.getResult();
 				}
 				catch (Exception ex) {
 					return Collections.singletonMap("status", "FAILED");

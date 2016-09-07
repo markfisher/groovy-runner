@@ -18,34 +18,35 @@ package com.example;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import org.springframework.stereotype.Component;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Dave Syer
  *
  */
-@Component
 public class MessageExchange {
+	
+	static private AtomicInteger count = new AtomicInteger();
 
-	private Map<String, Object> request = new LinkedHashMap<>();
+	static private Map<String, Object> request = new LinkedHashMap<>();
 
-	private Map<String, Object> response = new LinkedHashMap<>();
+	static private Map<String, Object> response = new LinkedHashMap<>();
 
-	public Map<String, Object> getRequest() {
+	static public Map<String, Object> getRequest() {
 		return request;
 	}
 
-	public void setRequest(Map<String, Object> request) {
-		this.request = request;
+	static public void setRequest(Map<String, Object> request) {
+		MessageExchange.request = request;
 	}
 
-	public Map<String, Object> getResult() {
+	static public Map<String, Object> getResult() {
 		return response;
 	}
 
-	public void setResponse(Map<String, Object> result) {
-		this.response = result;
+	static public void setResponse(Map<String, Object> result) {
+		MessageExchange.response.putAll(result);
+		response.put("count", count.incrementAndGet());
 	}
 
 }
