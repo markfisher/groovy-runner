@@ -35,12 +35,12 @@ import groovy.lang.GroovyClassLoader;
 public class SimpleApplication {
 
 	@GetMapping
-	public Object get() throws Exception {
+	public Map<String, Object> get() throws Exception {
 		return translate(null);
 	}
 
 	@RequestMapping
-	public Object handle(@RequestBody Object body) throws Exception {
+	public Map<String, Object> handle(@RequestBody Map<String, Object> body) throws Exception {
 		return translate(body);
 	}
 
@@ -48,8 +48,8 @@ public class SimpleApplication {
 		SpringApplication.run(SimpleApplication.class, args);
 	}
 
-	private Object translate(Object body) throws Exception {
-		return new LauncherCommand().run("classpath:sample.groovy");
+	private Map<String, Object> translate(Map<String, Object> body) throws Exception {
+		return new LauncherCommand().run(body, "classpath:sample.groovy");
 	}
 }
 
@@ -59,7 +59,7 @@ class LauncherCommand {
 	private static final String DEFAULT_VERSION = "1.4.0.RELEASE";
 	private URI[] baseUris;
 
-	public synchronized Map<String, Object> run(String source, String... args) throws Exception {
+	public synchronized Map<String, Object> run(Map<String, Object> request, String source, String... args) throws Exception {
 
 		try {
 			URLClassLoader classLoader = populateClassloader();
@@ -68,9 +68,9 @@ class LauncherCommand {
 			Class<?> threadClass = classLoader.loadClass(name);
 
 			Constructor<?> constructor = threadClass.getConstructor(ClassLoader.class,
-					int.class, String.class, String[].class);
+					int.class, Map.class, String.class, String[].class);
 			Thread thread = (Thread) constructor.newInstance(classLoader,
-					count.incrementAndGet(), source, args);
+					count.incrementAndGet(), request, source, args);
 			thread.start();
 			thread.join();
 			return getField(thread, "result");

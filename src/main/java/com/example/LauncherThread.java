@@ -50,10 +50,13 @@ public class LauncherThread extends Thread {
 
 	private Object monitor = new Object();
 
-	public LauncherThread(ClassLoader classLoader, int count, String source,
-			String... args) {
+	private Map<String, Object> request;
+
+	public LauncherThread(ClassLoader classLoader, int count, Map<String, Object> request,
+			String source, String... args) {
 		super("spring-launcher-" + count);
 		this.count = count;
+		this.request = request;
 		this.sources = new String[] { source };
 		this.args = args;
 		setContextClassLoader(classLoader);
@@ -140,7 +143,7 @@ public class LauncherThread extends Thread {
 		}
 
 		public Map<String, Object> getResult() {
-			if (this.applicationContext==null) {
+			if (this.applicationContext == null) {
 				return Collections.singletonMap("status", "EMPTY");
 			}
 			synchronized (this.monitor) {
@@ -157,6 +160,7 @@ public class LauncherThread extends Thread {
 		public void run() {
 			synchronized (this.monitor) {
 				try {
+					MessageExchange.setRequest(request);
 					this.applicationContext = new SpringApplicationLauncher(
 							getContextClassLoader()).launch(this.compiledSources,
 									getArgs());
