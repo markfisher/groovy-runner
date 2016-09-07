@@ -20,12 +20,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.springframework.stereotype.Component;
+	
 /**
  * @author Dave Syer
  *
  */
+@Component
 public class MessageExchange {
-	
+
 	static private AtomicInteger count = new AtomicInteger();
 
 	static private Map<String, Object> request = new LinkedHashMap<>();

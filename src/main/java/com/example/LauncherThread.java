@@ -18,6 +18,7 @@ package com.example;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -77,7 +78,7 @@ public class LauncherThread extends Thread {
 		synchronized (this.monitor) {
 			try {
 				this.compiler = new GroovyCompiler(new LauncherConfiguration());
-				Object[] sources = compile();
+				List<Object> sources = new ArrayList<>(Arrays.asList(compile()));
 				// Run in new thread to ensure that the context classloader is setup
 				this.runThread = new RunThread(sources);
 				this.runThread.start();
@@ -125,7 +126,7 @@ public class LauncherThread extends Thread {
 
 		private final Object monitor = new Object();
 
-		private final Object[] compiledSources;
+		private final List<Object> compiledSources;
 
 		private Object applicationContext;
 
@@ -133,11 +134,11 @@ public class LauncherThread extends Thread {
 		 * Create a new {@link RunThread} instance.
 		 * @param compiledSources the sources to launch
 		 */
-		RunThread(Object... compiledSources) {
+		RunThread(List<Object> compiledSources) {
 			super("runner-" + count);
 			this.compiledSources = compiledSources;
-			if (compiledSources.length != 0 && compiledSources[0] instanceof Class) {
-				setContextClassLoader(((Class<?>) compiledSources[0]).getClassLoader());
+			if (!compiledSources.isEmpty() && compiledSources.get(0) instanceof Class) {
+				setContextClassLoader(((Class<?>) compiledSources.get(0)).getClassLoader());
 			}
 			setDaemon(true);
 		}
@@ -162,7 +163,7 @@ public class LauncherThread extends Thread {
 				try {
 					MessageExchange.setRequest(request);
 					this.applicationContext = new SpringApplicationLauncher(
-							getContextClassLoader()).launch(this.compiledSources,
+							getContextClassLoader()).launch(this.compiledSources.toArray(new Object[0]),
 									getArgs());
 				}
 				catch (Exception ex) {
