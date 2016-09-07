@@ -1,10 +1,10 @@
-import java.util.function.Function;
+import com.example.Handler
 
 @Configuration
 class Main {
 
 	@Bean
-	Function<Map<String, Object>, Map<String, Object>> runner() { { request ->
+	Handler runner() { { request ->
 			["foo" : "bar", "request" : request]
 		}
 	}
