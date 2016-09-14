@@ -38,7 +38,7 @@ import org.springframework.util.StringUtils;
  * @author Dave Syer
  *
  */
-public class Launcher implements Callable<Map<String,Object>> {
+public class Launcher implements Callable<Map<String, Object>> {
 
 	private String[] args;
 
@@ -58,17 +58,21 @@ public class Launcher implements Callable<Map<String,Object>> {
 
 	private ClassLoader classLoader;
 
-	public Launcher(ClassLoader classLoader, int count, Map<String, Object> request,
-			String source, String... args) {
+	private List<Object> compiled;
+
+	public Launcher(ClassLoader classLoader, int count, String source, String... args) {
 		this.classLoader = classLoader;
 		this.count = count;
-		this.request = request;
 		this.sources = new String[] { source };
 		this.args = args;
 	}
 
 	public Map<String, Object> getResult() {
 		return result;
+	}
+
+	public void setRequest(Map<String, Object> request) {
+		this.request = request;
 	}
 
 	@Override
@@ -82,10 +86,12 @@ public class Launcher implements Callable<Map<String,Object>> {
 	private void launch() {
 		synchronized (this.monitor) {
 			try {
-				this.compiler = new GroovyCompiler(new LauncherConfiguration());
-				List<Object> sources = new ArrayList<>(Arrays.asList(compile()));
+				if (compiled == null) {
+					this.compiler = new GroovyCompiler(new LauncherConfiguration());
+					compiled = new ArrayList<>(Arrays.asList(compile()));
+				}
 				// Run in new thread to ensure that the context classloader is setup
-				this.runThread = new RunThread(sources);
+				this.runThread = new RunThread(compiled);
 				this.runThread.start();
 				this.runThread.join();
 			}
@@ -119,7 +125,8 @@ public class Launcher implements Callable<Map<String,Object>> {
 	}
 
 	private Object[] compile() throws IOException {
-		Object[] compiledSources = this.compiler.compile(StringUtils.addStringToArray(this.sources, "classpath:listener.groovy"));
+		Object[] compiledSources = this.compiler.compile(
+				StringUtils.addStringToArray(this.sources, "classpath:listener.groovy"));
 		if (compiledSources.length == 0) {
 			throw new RuntimeException(
 					"No classes found in '" + Arrays.toString(this.sources) + "'");
@@ -143,7 +150,8 @@ public class Launcher implements Callable<Map<String,Object>> {
 			super("runner-" + count);
 			this.compiledSources = compiledSources;
 			if (!compiledSources.isEmpty() && compiledSources.get(0) instanceof Class) {
-				setContextClassLoader(((Class<?>) compiledSources.get(0)).getClassLoader());
+				setContextClassLoader(
+						((Class<?>) compiledSources.get(0)).getClassLoader());
 			}
 			setDaemon(true);
 		}
@@ -168,7 +176,8 @@ public class Launcher implements Callable<Map<String,Object>> {
 				try {
 					MessageExchange.setRequest(request);
 					this.applicationContext = new SpringApplicationLauncher(
-							getContextClassLoader()).launch(this.compiledSources.toArray(new Object[0]),
+							getContextClassLoader()).launch(
+									this.compiledSources.toArray(new Object[0]),
 									getArgs());
 				}
 				catch (Exception ex) {

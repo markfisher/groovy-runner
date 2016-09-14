@@ -43,7 +43,7 @@ public class SimpleApplication {
 
 class LauncherCommand {
 	
-	private LauncherThreadFactory threadFactory = new LauncherThreadFactory();
+	private LauncherFactory threadFactory = new LauncherFactory();
 	private ExecutorService executor;
 	
 	public LauncherCommand() {

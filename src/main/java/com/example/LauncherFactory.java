@@ -18,6 +18,7 @@ package com.example;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,6 +36,7 @@ import org.springframework.boot.cli.compiler.grape.AetherGrapeEngine;
 import org.springframework.boot.cli.compiler.grape.AetherGrapeEngineFactory;
 import org.springframework.boot.cli.compiler.grape.DependencyResolutionContext;
 import org.springframework.boot.cli.compiler.grape.RepositoryConfiguration;
+import org.springframework.util.ReflectionUtils;
 
 import groovy.lang.GroovyClassLoader;
 
@@ -42,14 +44,15 @@ import groovy.lang.GroovyClassLoader;
  * @author Dave Syer
  *
  */
-public class LauncherThreadFactory {
+public class LauncherFactory {
 
 	private static AtomicInteger count = new AtomicInteger();
 	private static final String DEFAULT_VERSION = "1.4.0.RELEASE";
 	private URI[] baseUris;
 	private URLClassLoader classLoader;
+	private Callable<Map<String, Object>> launcher;
 
-	public LauncherThreadFactory() {
+	public LauncherFactory() {
 		try {
 			classLoader = populateClassloader();
 		}
@@ -61,20 +64,29 @@ public class LauncherThreadFactory {
 	public Callable<Map<String, Object>> getTask(Map<String, Object> request,
 			String source, String[] args) {
 		try {
-			String name = "com.example.Launcher";
-			Class<?> threadClass = classLoader.loadClass(name);
-			Constructor<?> constructor = threadClass.getConstructor(ClassLoader.class,
-					int.class, Map.class, String.class, String[].class);
-			@SuppressWarnings("unchecked")
-			Callable<Map<String, Object>> thread = (Callable<Map<String, Object>>) constructor
-					.newInstance(classLoader, count.incrementAndGet(), request, source,
-							args);
-			return thread;
+			if (launcher == null) {
+				String name = "com.example.Launcher";
+				Class<?> threadClass = classLoader.loadClass(name);
+				Constructor<?> constructor = threadClass.getConstructor(ClassLoader.class,
+						int.class, String.class, String[].class);
+				@SuppressWarnings("unchecked")
+				Callable<Map<String, Object>> target = (Callable<Map<String, Object>>) constructor
+						.newInstance(classLoader, count.incrementAndGet(), source, args);
+				launcher = target;
+			}
+			setField("request", launcher, request);
+			return launcher;
 		}
 		catch (Exception e) {
 			throw new IllegalStateException(e);
 		}
 
+	}
+
+	private void setField(String name, Object target, Map<String, Object> value) {
+		Field field = ReflectionUtils.findField(target.getClass(), name);
+		ReflectionUtils.makeAccessible(field);
+		ReflectionUtils.setField(field, launcher, value);
 	}
 
 	private URLClassLoader populateClassloader()
