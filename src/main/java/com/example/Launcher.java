@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 import org.springframework.boot.cli.app.SpringApplicationLauncher;
 import org.springframework.boot.cli.compiler.GroovyCompiler;
@@ -32,13 +31,12 @@ import org.springframework.boot.cli.compiler.GroovyCompilerScope;
 import org.springframework.boot.cli.compiler.RepositoryConfigurationFactory;
 import org.springframework.boot.cli.compiler.grape.RepositoryConfiguration;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
  *
  */
-public class Launcher implements Callable<Map<String, Object>> {
+public class Launcher implements Handler {
 
 	private String[] args;
 
@@ -52,8 +50,6 @@ public class Launcher implements Callable<Map<String, Object>> {
 
 	private Object monitor = new Object();
 
-	private Map<String, Object> request;
-
 	private ClassLoader classLoader;
 
 	private List<Object> compiled;
@@ -65,12 +61,8 @@ public class Launcher implements Callable<Map<String, Object>> {
 		this.args = args;
 	}
 
-	public void setRequest(Map<String, Object> request) {
-		this.request = request;
-	}
-
 	@Override
-	public Map<String, Object> call() {
+	public Map<String, Object> handle(Map<String, Object> request) {
 		ClassUtils.overrideThreadContextClassLoader(classLoader);
 		launch();
 		Handler handler = runThread.getHandler();

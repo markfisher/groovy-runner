@@ -18,7 +18,7 @@ package com.example;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -50,7 +50,7 @@ public class LauncherFactory {
 	private static final String DEFAULT_VERSION = "1.4.0.RELEASE";
 	private URI[] baseUris;
 	private URLClassLoader classLoader;
-	private Callable<Map<String, Object>> launcher;
+	private Object launcher;
 
 	public LauncherFactory() {
 		try {
@@ -69,13 +69,11 @@ public class LauncherFactory {
 				Class<?> threadClass = classLoader.loadClass(name);
 				Constructor<?> constructor = threadClass.getConstructor(ClassLoader.class,
 						int.class, String.class, String[].class);
-				@SuppressWarnings("unchecked")
-				Callable<Map<String, Object>> target = (Callable<Map<String, Object>>) constructor
-						.newInstance(classLoader, count.incrementAndGet(), source, args);
+				Object target = constructor.newInstance(classLoader,
+						count.incrementAndGet(), source, args);
 				launcher = target;
 			}
-			setField("request", launcher, request);
-			return launcher;
+			return () -> exchange("handle", launcher, request);
 		}
 		catch (Exception e) {
 			throw new IllegalStateException(e);
@@ -83,10 +81,13 @@ public class LauncherFactory {
 
 	}
 
-	private void setField(String name, Object target, Map<String, Object> value) {
-		Field field = ReflectionUtils.findField(target.getClass(), name);
-		ReflectionUtils.makeAccessible(field);
-		ReflectionUtils.setField(field, launcher, value);
+	private Map<String, Object> exchange(String name, Object target,
+			Map<String, Object> value) {
+		Method method = ReflectionUtils.findMethod(target.getClass(), name, Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> map = (Map<String, Object>) ReflectionUtils
+				.invokeMethod(method, target, value);
+		return map;
 	}
 
 	private URLClassLoader populateClassloader()
