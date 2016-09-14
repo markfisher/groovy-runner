@@ -42,8 +42,6 @@ public class Launcher implements Callable<Map<String, Object>> {
 
 	private String[] args;
 
-	private Map<String, Object> result;
-
 	private int count;
 
 	private String[] sources;
@@ -67,10 +65,6 @@ public class Launcher implements Callable<Map<String, Object>> {
 		this.args = args;
 	}
 
-	public Map<String, Object> getResult() {
-		return result;
-	}
-
 	public void setRequest(Map<String, Object> request) {
 		this.request = request;
 	}
@@ -79,6 +73,8 @@ public class Launcher implements Callable<Map<String, Object>> {
 	public Map<String, Object> call() {
 		ClassUtils.overrideThreadContextClassLoader(classLoader);
 		launch();
+		Handler handler = runThread.getHandler();
+		Map<String, Object> result = handler.handle(request);
 		close();
 		return result;
 	}
@@ -104,11 +100,7 @@ public class Launcher implements Callable<Map<String, Object>> {
 	public void close() {
 		synchronized (this.monitor) {
 			if (this.runThread != null) {
-				if (this.runThread.applicationContext == null) {
-					result = Collections.singletonMap("status", "ERROR");
-				}
-				else {
-					result = this.runThread.getResult();
+				if (this.runThread.applicationContext != null) {
 					this.runThread.shutdown();
 				}
 				this.runThread = null;
@@ -156,17 +148,16 @@ public class Launcher implements Callable<Map<String, Object>> {
 			setDaemon(true);
 		}
 
-		public Map<String, Object> getResult() {
-			if (this.applicationContext == null) {
-				return Collections.singletonMap("status", "EMPTY");
+		public Handler getHandler() {
+			try {
+				Method method = this.applicationContext.getClass()
+						.getMethod("getBean", Class.class);
+				Handler handler = (Handler) method.invoke(this.applicationContext,
+						Handler.class);
+				return handler;
 			}
-			synchronized (this.monitor) {
-				try {
-					return MessageExchange.getResult();
-				}
-				catch (Exception ex) {
-					return Collections.singletonMap("status", "FAILED");
-				}
+			catch (Exception ex) {
+				return request -> Collections.singletonMap("status", "FAILED");
 			}
 		}
 
