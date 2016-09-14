@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.springframework.boot.cli.app.SpringApplicationLauncher;
 import org.springframework.boot.cli.compiler.GroovyCompiler;
@@ -30,13 +31,14 @@ import org.springframework.boot.cli.compiler.GroovyCompilerConfiguration;
 import org.springframework.boot.cli.compiler.GroovyCompilerScope;
 import org.springframework.boot.cli.compiler.RepositoryConfigurationFactory;
 import org.springframework.boot.cli.compiler.grape.RepositoryConfiguration;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
  *
  */
-public class LauncherThread extends Thread {
+public class Launcher implements Callable<Map<String,Object>> {
 
 	private String[] args;
 
@@ -54,15 +56,15 @@ public class LauncherThread extends Thread {
 
 	private Map<String, Object> request;
 
-	public LauncherThread(ClassLoader classLoader, int count, Map<String, Object> request,
+	private ClassLoader classLoader;
+
+	public Launcher(ClassLoader classLoader, int count, Map<String, Object> request,
 			String source, String... args) {
-		super("spring-launcher-" + count);
+		this.classLoader = classLoader;
 		this.count = count;
 		this.request = request;
 		this.sources = new String[] { source };
 		this.args = args;
-		setContextClassLoader(classLoader);
-		setDaemon(true);
 	}
 
 	public Map<String, Object> getResult() {
@@ -70,9 +72,11 @@ public class LauncherThread extends Thread {
 	}
 
 	@Override
-	public void run() {
+	public Map<String, Object> call() {
+		ClassUtils.overrideThreadContextClassLoader(classLoader);
 		launch();
 		close();
+		return result;
 	}
 
 	private void launch() {

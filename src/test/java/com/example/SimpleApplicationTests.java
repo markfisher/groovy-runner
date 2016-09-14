@@ -7,16 +7,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootContextLoader;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.Repeat;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@ContextConfiguration//(loader=CustomLoader.class)
 @AutoConfigureMockMvc
 public class SimpleApplicationTests {
 
@@ -24,11 +25,20 @@ public class SimpleApplicationTests {
 	private MockMvc mockMvc;
 
 	@Test
-	public void contextLoads() throws Exception {
+	public void once() throws Exception {
 		mockMvc.perform(post("/").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"one\":\"two\"}")).andExpect(status().isOk())
 				.andExpect(content().json(
-						"{\"foo\":\"bar\",\"request\":{\"one\":\"two\"},\"count\":1}"));
+						"{\"foo\":\"bar\",\"request\":{\"one\":\"two\"}}"));
+	}
+
+	@Test
+	@Repeat(10)
+	public void several() throws Exception {
+		mockMvc.perform(post("/").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"one\":\"two\"}")).andExpect(status().isOk())
+				.andExpect(content().json(
+						"{\"foo\":\"bar\",\"request\":{\"one\":\"two\"}}"));
 	}
 
 }
