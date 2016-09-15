@@ -52,6 +52,8 @@ public class Launcher implements Handler {
 
 	private ClassLoader classLoader;
 
+	private Object applicationContext;
+
 	private List<Object> compiled;
 
 	public Launcher(ClassLoader classLoader, int count, String source, String... args) {
@@ -74,9 +76,9 @@ public class Launcher implements Handler {
 	private void launch() {
 		synchronized (this.monitor) {
 			try {
-				if (compiled == null) {
+				if (this.compiled == null) {
 					this.compiler = new GroovyCompiler(new LauncherConfiguration());
-					compiled = new ArrayList<>(Arrays.asList(compile()));
+					this.compiled = new ArrayList<>(Arrays.asList(compile()));
 				}
 				// Run in new thread to ensure that the context classloader is setup
 				this.runThread = new RunThread(compiled);
@@ -92,8 +94,8 @@ public class Launcher implements Handler {
 	public void close() {
 		synchronized (this.monitor) {
 			if (this.runThread != null) {
-				if (this.runThread.applicationContext != null) {
-					this.runThread.shutdown();
+				if (this.applicationContext != null) {
+					// this.runThread.shutdown();
 				}
 				this.runThread = null;
 			}
@@ -123,8 +125,6 @@ public class Launcher implements Handler {
 
 		private final List<Object> compiledSources;
 
-		private Object applicationContext;
-
 		/**
 		 * Create a new {@link RunThread} instance.
 		 * @param compiledSources the sources to launch
@@ -141,9 +141,9 @@ public class Launcher implements Handler {
 
 		public Handler getHandler() {
 			try {
-				Method method = this.applicationContext.getClass()
-						.getMethod("getBean", Class.class);
-				Handler handler = (Handler) method.invoke(this.applicationContext,
+				Method method = applicationContext.getClass().getMethod("getBean",
+						Class.class);
+				Handler handler = (Handler) method.invoke(applicationContext,
 						Handler.class);
 				return handler;
 			}
@@ -156,10 +156,12 @@ public class Launcher implements Handler {
 		public void run() {
 			synchronized (this.monitor) {
 				try {
-					this.applicationContext = new SpringApplicationLauncher(
-							getContextClassLoader()).launch(
-									this.compiledSources.toArray(new Object[0]),
-									getArgs());
+					if (applicationContext == null) {
+						applicationContext = new SpringApplicationLauncher(
+								getContextClassLoader()).launch(
+										this.compiledSources.toArray(new Object[0]),
+										getArgs());
+					}
 				}
 				catch (Exception ex) {
 				}
@@ -171,11 +173,11 @@ public class Launcher implements Handler {
 		 */
 		public void shutdown() {
 			synchronized (this.monitor) {
-				if (this.applicationContext != null) {
+				if (applicationContext != null) {
 					try {
-						Method method = this.applicationContext.getClass()
+						Method method = applicationContext.getClass()
 								.getMethod("close");
-						method.invoke(this.applicationContext);
+						method.invoke(applicationContext);
 					}
 					catch (NoSuchMethodException ex) {
 						// Not an application context that we can close
@@ -184,7 +186,7 @@ public class Launcher implements Handler {
 						ex.printStackTrace();
 					}
 					finally {
-						this.applicationContext = null;
+						applicationContext = null;
 					}
 				}
 			}
