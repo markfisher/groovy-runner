@@ -61,8 +61,7 @@ public class LauncherFactory {
 		}
 	}
 
-	public Callable<Map<String, Object>> getTask(Map<String, Object> request,
-			String source, String[] args) {
+	public Object getLauncher(String source, String[] args) {
 		try {
 			if (launcher == null) {
 				String name = "com.example.Launcher";
@@ -73,21 +72,12 @@ public class LauncherFactory {
 						count.incrementAndGet(), source, args);
 				launcher = target;
 			}
-			return () -> exchange("handle", launcher, request);
+			return launcher;
 		}
 		catch (Exception e) {
 			throw new IllegalStateException(e);
 		}
 
-	}
-
-	private Map<String, Object> exchange(String name, Object target,
-			Map<String, Object> value) {
-		Method method = ReflectionUtils.findMethod(target.getClass(), name, Map.class);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = (Map<String, Object>) ReflectionUtils
-				.invokeMethod(method, target, value);
-		return map;
 	}
 
 	private URLClassLoader populateClassloader()

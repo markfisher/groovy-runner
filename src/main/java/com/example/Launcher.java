@@ -55,7 +55,7 @@ public class Launcher implements Handler {
 	private Object applicationContext;
 
 	private List<Object> compiled;
-
+	
 	public Launcher(ClassLoader classLoader, int count, String source, String... args) {
 		this.classLoader = classLoader;
 		this.count = count;
