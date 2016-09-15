@@ -18,15 +18,12 @@ package com.example;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -36,7 +33,6 @@ import org.springframework.boot.cli.compiler.grape.AetherGrapeEngine;
 import org.springframework.boot.cli.compiler.grape.AetherGrapeEngineFactory;
 import org.springframework.boot.cli.compiler.grape.DependencyResolutionContext;
 import org.springframework.boot.cli.compiler.grape.RepositoryConfiguration;
-import org.springframework.util.ReflectionUtils;
 
 import groovy.lang.GroovyClassLoader;
 
@@ -133,5 +129,4 @@ public class LauncherFactory {
 		String version = (pkg != null ? pkg.getImplementationVersion() : DEFAULT_VERSION);
 		return version != null ? version : DEFAULT_VERSION;
 	}
-
 }

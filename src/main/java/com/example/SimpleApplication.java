@@ -1,5 +1,6 @@
 package com.example;
 
+import java.io.Closeable;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 @RestController
-public class SimpleApplication {
+public class SimpleApplication implements Closeable {
 
 	private LauncherCommand launcher;
 
@@ -46,9 +47,18 @@ public class SimpleApplication {
 		}
 		return launcher.run(body, "classpath:sample.groovy");
 	}
+
+	public void close() {
+		if (launcher != null) {
+			launcher.close();
+			launcher = null;
+		}
+	}
+
 }
 
-class LauncherCommand extends BaseKeyedPooledObjectFactory<String, Object> {
+class LauncherCommand extends BaseKeyedPooledObjectFactory<String, Object>
+		implements Closeable {
 
 	private GenericKeyedObjectPool<String, Object> pool = new GenericKeyedObjectPool<>(
 			this);
@@ -64,7 +74,7 @@ class LauncherCommand extends BaseKeyedPooledObjectFactory<String, Object> {
 		Callable<Map<String, Object>> callable = () -> {
 			Object launcher = pool.borrowObject(source);
 			try {
-				return exchange("handle", launcher, request);
+				return exchange(launcher, request);
 			}
 			finally {
 				pool.returnObject(source, launcher);
@@ -74,13 +84,21 @@ class LauncherCommand extends BaseKeyedPooledObjectFactory<String, Object> {
 		return task.get();
 	}
 
-	private Map<String, Object> exchange(String name, Object target,
-			Map<String, Object> value) {
-		Method method = ReflectionUtils.findMethod(target.getClass(), name, Map.class);
+	private Map<String, Object> exchange(Object target, Object... value) {
+		Method method = ReflectionUtils.findMethod(target.getClass(), "handle",
+				Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> map = (Map<String, Object>) ReflectionUtils
 				.invokeMethod(method, target, value);
 		return map;
+	}
+
+	@Override
+	public void destroyObject(String key, PooledObject<Object> p) throws Exception {
+		Object target = p.getObject();
+		Method method = ReflectionUtils.findMethod(target.getClass(), "shutdown",
+				Map.class);
+		ReflectionUtils.invokeMethod(method, target);
 	}
 
 	@Override
@@ -92,6 +110,10 @@ class LauncherCommand extends BaseKeyedPooledObjectFactory<String, Object> {
 	@Override
 	public PooledObject<Object> wrap(Object value) {
 		return new DefaultPooledObject<Object>(value);
+	}
+
+	public void close() {
+		pool.close();
 	}
 
 }

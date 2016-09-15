@@ -25,7 +25,7 @@ public class SimpleApplicationTests {
 	private MockMvc mockMvc;
 
 	@Test
-	public void once() throws Exception {
+	public void before() throws Exception {
 		mockMvc.perform(post("/").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"one\":\"two\"}")).andExpect(status().isOk())
 				.andExpect(content().json(

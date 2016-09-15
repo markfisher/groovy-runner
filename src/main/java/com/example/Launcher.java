@@ -55,7 +55,7 @@ public class Launcher implements Handler {
 	private Object applicationContext;
 
 	private List<Object> compiled;
-	
+
 	public Launcher(ClassLoader classLoader, int count, String source, String... args) {
 		this.classLoader = classLoader;
 		this.count = count;
@@ -91,12 +91,38 @@ public class Launcher implements Handler {
 		}
 	}
 
-	public void close() {
+	public void shutdown() {
 		synchronized (this.monitor) {
 			if (this.runThread != null) {
 				if (this.applicationContext != null) {
-					// this.runThread.shutdown();
+					synchronized (this.monitor) {
+						if (applicationContext != null) {
+							try {
+								Method method = applicationContext.getClass()
+										.getMethod("close");
+								method.invoke(applicationContext);
+							}
+							catch (NoSuchMethodException ex) {
+								// Not an application context that we can close
+							}
+							catch (Exception ex) {
+								ex.printStackTrace();
+							}
+							finally {
+								applicationContext = null;
+							}
+						}
+					}
 				}
+				this.runThread = null;
+			}
+		}
+
+	}
+
+	private void close() {
+		synchronized (this.monitor) {
+			if (this.runThread != null) {
 				this.runThread = null;
 			}
 		}
@@ -168,29 +194,6 @@ public class Launcher implements Handler {
 			}
 		}
 
-		/**
-		 * Shutdown the thread, closing any previously opened application context.
-		 */
-		public void shutdown() {
-			synchronized (this.monitor) {
-				if (applicationContext != null) {
-					try {
-						Method method = applicationContext.getClass()
-								.getMethod("close");
-						method.invoke(applicationContext);
-					}
-					catch (NoSuchMethodException ex) {
-						// Not an application context that we can close
-					}
-					catch (Exception ex) {
-						ex.printStackTrace();
-					}
-					finally {
-						applicationContext = null;
-					}
-				}
-			}
-		}
 	}
 }
 
