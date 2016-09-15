@@ -61,7 +61,7 @@ public class LauncherFactory {
 		}
 	}
 
-	public Object getLauncher(String source, String[] args) {
+	public Object getLauncher(String source, String... args) {
 		try {
 			if (launcher == null) {
 				String name = "com.example.Launcher";
